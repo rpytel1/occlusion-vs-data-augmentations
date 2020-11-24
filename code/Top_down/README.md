@@ -54,7 +54,7 @@ The code is developed using python 3.6 on Ubuntu 16.04. NVIDIA GPUs are needed. 
    └── requirements.txt
    ```
 
-6. Download pretrained models from our model zoo([GoogleDrive](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC?usp=sharing) or [OneDrive](https://1drv.ms/f/s!AhIXJn_J-blW231MH2krnmLq5kkQ))
+6. Download pretrained models from HRNet's repository model zoo([GoogleDrive](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC?usp=sharing) or [OneDrive](https://1drv.ms/f/s!AhIXJn_J-blW231MH2krnmLq5kkQ)) or our models trained with proposed augmentations ([COCO models](https://drive.google.com/drive/u/1/folders/1WNaQg-HnkDVhBrTA8xEKOS0N9xIGyyX7) and [MPII models](https://drive.google.com/drive/u/1/folders/1_shPG2Bm8yjB1jcOkJHSnYznr17qSY3M))
    ```
    ${POSE_ROOT}
     `-- models
@@ -130,7 +130,7 @@ ${POSE_ROOT}
 
 ### Training and Testing
 
-#### Testing on MPII dataset using model zoo's models([GoogleDrive](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC?usp=sharing) or [OneDrive](https://1drv.ms/f/s!AhIXJn_J-blW231MH2krnmLq5kkQ))
+#### Testing on MPII dataset using model zoo's models ([GoogleDrive](https://drive.google.com/drive/u/1/folders/1_shPG2Bm8yjB1jcOkJHSnYznr17qSY3M))
  
 
 ```
@@ -146,7 +146,7 @@ python train.py \
     --cfg experiments/mpii/hrnet/blurring_keypoints_05.yaml
 ```
 
-#### Testing on COCO val2017 dataset using model zoo's models([GoogleDrive](https://drive.google.com/drive/folders/1hOTihvbyIxsm5ygDpbUuJ7O_tzv4oXjC?usp=sharing) or [OneDrive](https://1drv.ms/f/s!AhIXJn_J-blW231MH2krnmLq5kkQ))
+#### Testing on COCO val2017 dataset using model zoo's models([GoogleDrive](https://drive.google.com/drive/u/1/folders/1WNaQg-HnkDVhBrTA8xEKOS0N9xIGyyX7))
  
 
 ```
