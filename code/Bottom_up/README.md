@@ -1,6 +1,6 @@
 # Bottom up
 
-This repository is adapted from HigherHRNet [repository]()
+This repository is adapted from HigherHRNet [repository](https://github.com/HRNet/HigherHRNet-Human-Pose-Estimation).
 
 ## Environment
 The code is developed using python 3.6 on Ubuntu 16.04. NVIDIA GPUs are needed. The code is developed and tested using 4 NVIDIA P100 GPU cards. Other platforms or GPU cards are not fully tested.
