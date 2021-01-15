@@ -10,6 +10,11 @@ from __future__ import division
 from __future__ import print_function
 
 from . import transforms as T
+from .targeted_blurring import TargetedBlurring
+from .targeted_cutout import Cutout
+from .targeted_cutmix import TargetedCutmix
+from .random_image_transform import RandomImageTransform
+import os
 
 
 FLIP_CONFIG = {
@@ -66,6 +71,7 @@ def build_transforms(cfg, is_train=True):
 
     transforms = T.Compose(
         [
+            get_targeted_transforms(cfg),           
             T.RandomAffineTransform(
                 input_size,
                 output_size,
@@ -76,6 +82,7 @@ def build_transforms(cfg, is_train=True):
                 max_translate,
                 scale_aware_sigma=cfg.DATASET.SCALE_AWARE_SIGMA
             ),
+
             T.RandomHorizontalFlip(coco_flip_index, output_size, flip),
             T.ToTensor(),
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -83,3 +90,53 @@ def build_transforms(cfg, is_train=True):
     )
 
     return transforms
+
+def get_targeted_transforms(cfg):
+    ann_path = get_annotation_path(cfg)
+    image_dir = get_image_dir_path(cfg)
+    print(ann_path)
+    print(image_dir)
+    return T.Compose([RandomImageTransform(TargetedBlurring("coco"),cfg.DATASET.AUGMENTATIONS.BLURRING.PROB,
+                                           cfg.DATASET.AUGMENTATIONS.BLURRING.MODE,"coco"),
+                      RandomImageTransform(Cutout("coco"),cfg.DATASET.AUGMENTATIONS.CUTOUT.PROB,
+                                           cfg.DATASET.AUGMENTATIONS.CUTOUT.MODE,"coco"),
+                      RandomImageTransform(TargetedCutmix(image_dir, ann_path, 
+                                                          remove_anns=cfg.DATASET.AUGMENTATIONS.REMOVE_ANNS,
+                                                          dataset="coco"),
+                             cfg.DATASET.AUGMENTATIONS.CUTMIX.PROB, "parts", dataset="coco")
+                     ])
+        
+def build_test_transforms(cfg):
+    transforms_list = []
+    if cfg.BLURRING != '':
+        transforms_list.append(TargetedBlurring("coco", part=cfg.BLURRING, width=cfg.CROP_SIZE))
+    if cfg.CUTOUT != '':
+        transforms_list.append(Cutout("coco", part=cfg.CUTOUT, mean_coloring=cfg.MEAN_COLORING, 
+                                      width=cfg.CROP_SIZE))
+       
+    
+    print(cfg.CROP_SIZE)
+    return T.TestCompose(transforms_list)
+
+
+def get_annotation_path(cfg):
+    if cfg.DATASET.DATASET == "coco_kpt":
+        prefix = 'person_keypoints' \
+            if 'test' not in cfg.DATASET.TRAIN else 'image_info'
+
+        annotation = cfg.DATASET.TRAIN.split("/")[0]
+
+        return os.path.join(cfg.DATASET.ROOT, 'annotations', prefix + '_' + annotation + '.json')
+    else:
+        return os.path.join(cfg.DATASET.ROOT, 'annot', cfg.DATASET.TRAIN + '.json')
+
+
+def get_image_dir_path(cfg):
+    if cfg.DATASET.DATASET == "coco_kpt":
+        prefix = 'test2017' if 'test' in cfg.DATASET.TRAIN else cfg.DATASET.TRAIN
+        prefix = 'train2017' if 'train' in cfg.DATASET.TRAIN else prefix
+        prefix = 'val2017' if 'val' in cfg.DATASET.TRAIN else prefix
+
+        return os.path.join(cfg.DATASET.ROOT, 'images', prefix)
+    else:
+        return os.path.join(cfg.DATASET.ROOT,'images')

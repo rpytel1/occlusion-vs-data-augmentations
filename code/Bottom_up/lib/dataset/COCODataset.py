@@ -23,6 +23,12 @@ from torch.utils.data import Dataset
 from pycocotools.cocoeval import COCOeval
 from utils import zipreader
 
+from .customeval import CustomEval
+from .transforms.image_transform import ImageTransform
+from .transforms.targeted_cutout import Cutout
+from .transforms.keypoints_constants import keypoint_names, part_mapping
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +70,7 @@ class CocoDataset(Dataset):
                 for cls in self.classes[1:]
             ]
         )
+        
 
     def _get_anno_file_name(self):
         # example: root/annotations/person_keypoints_tran2017.json
@@ -122,11 +129,10 @@ class CocoDataset(Dataset):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         if self.transform is not None:
-            img = self.transform(img)
+            img,target,_ = self.transform(img, [], target)
 
         if self.target_transform is not None:
             target = self.target_transform(target)
-
         return img, target
 
     def __len__(self):
@@ -216,7 +222,7 @@ class CocoDataset(Dataset):
 
         if 'test' not in self.dataset:
             info_str = self._do_python_keypoint_eval(
-                res_file, res_folder
+                res_file, res_folder,cfg
             )
             name_value = OrderedDict(info_str)
             return name_value, name_value['AP']
@@ -292,18 +298,88 @@ class CocoDataset(Dataset):
 
         return cat_results
 
-    def _do_python_keypoint_eval(self, res_file, res_folder):
+    def _do_python_keypoint_eval(self, res_file, res_folder,cfg):
         coco_dt = self.coco.loadRes(res_file)
-        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints')
+        coco_eval = CustomEval(self.coco, coco_dt, 'keypoints')
         coco_eval.params.useSegm = None
+        part, tfms_name, crop_size  = self._get_occluded(cfg)
+        # coco_eval.params.occlusion = part
+        stats_names = ['AP', 'Ap .5', 'AP .75', 'AP (M)', 'AP (L)', 'AR', 'AR .5', 'AR .75', 'AR (M)', 'AR (L)']
+
+        ## Per keypoint evaluation
+        metrics = {}
+        for i, keypoint in enumerate(keypoint_names["coco"]):
+            coco_eval.params.keypoint = keypoint
+            coco_eval.params.print = False
+
+            coco_eval.evaluate()
+            coco_eval.accumulate()
+            coco_eval.summarize()
+            info_str = []
+            for ind, name in enumerate(stats_names):
+                info_str.append((name, coco_eval.stats[ind]))
+            metrics[keypoint] = dict(info_str)
+
+        # All keypoint evaluation
+        coco_eval.params.keypoint = "all"
+        coco_eval.params.print = True
+
         coco_eval.evaluate()
         coco_eval.accumulate()
         coco_eval.summarize()
-        stats_names = ['AP', 'Ap .5', 'AP .75', 'AP (M)', 'AP (L)', 'AR', 'AR .5', 'AR .75', 'AR (M)', 'AR (L)']
 
         info_str = []
         for ind, name in enumerate(stats_names):
             info_str.append((name, coco_eval.stats[ind]))
-            # info_str.append(coco_eval.stats[ind])
+
+
+        
+        metrics["all"] = dict(info_str)
+        print(cfg.TEST.MODEL_FILE)
+        file_path = self._create_results_save_folder(cfg)
+        if crop_size != 0:
+            file_path = os.path.join(file_path, "crop_size_"+str(crop_size))
+            if not os.path.isdir(file_path):
+                os.mkdir(file_path)
+
+
+        filename = part + '_' + tfms_name + '.json'
+        file_path = os.path.join(file_path, filename)
+        print(file_path)
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(metrics, f, ensure_ascii=False, indent=4)
 
         return info_str
+
+    def _get_occluded(self, cfg):
+        part = ""
+        name = ""
+        width = 0
+        
+        occlusion_transforms = list(filter(lambda a: isinstance(a, ImageTransform), self.transform.transforms))
+        if len(occlusion_transforms) > 0:
+            if isinstance(occlusion_transforms[0], Cutout):
+                name = "cutout_"
+                if occlusion_transforms[0].mean_coloring:
+                    name = name + "mean"
+                else:
+                    name = name + "normal"
+            part = occlusion_transforms[0].part
+            if part in keypoint_names['coco']:
+                width = occlusion_transforms[0].width
+
+        return part, name, width
+
+    def _create_results_save_folder(self, cfg):
+        pretrained_model = os.path.basename(os.path.dirname(cfg.TEST.MODEL_FILE))
+        print(pretrained_model)
+        file_path = os.path.join("results", pretrained_model)
+
+        if not os.path.isdir(file_path):
+            os.mkdir(file_path)
+
+        # file_path = os.path.join(file_path, self.image_set)
+        # if not os.path.isdir(file_path):
+        #     os.mkdir(file_path)
+
+        return file_path

@@ -4,5 +4,5 @@ from .transforms import ToTensor
 from .transforms import Normalize
 from .transforms import RandomHorizontalFlip
 
-from .build import build_transforms
+from .build import build_transforms, build_test_transforms
 from .build import FLIP_CONFIG

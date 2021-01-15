@@ -5,7 +5,7 @@
 # ------------------------------------------------------------------------------
 
 from .COCOKeypoints import CocoKeypoints as coco
-from .CrowdPoseKeypoints import CrowdPoseKeypoints as crowd_pose
+# from .CrowdPoseKeypoints import CrowdPoseKeypoints as crowd_pose
 from .build import make_dataloader
 from .build import make_test_dataloader
 

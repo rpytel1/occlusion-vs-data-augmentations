@@ -76,7 +76,6 @@ class CocoKeypoints(CocoDataset):
         mask_list = [mask.copy() for _ in range(self.num_scales)]
         joints_list = [joints.copy() for _ in range(self.num_scales)]
         target_list = list()
-
         if self.transforms:
             img, mask_list, joints_list = self.transforms(
                 img, mask_list, joints_list

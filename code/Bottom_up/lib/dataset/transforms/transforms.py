@@ -35,6 +35,40 @@ class Compose(object):
         format_string += "\n)"
         return format_string
 
+class TestCompose(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, image, mask, target_json):
+
+        for t in self.transforms:
+            for i in range(len(target_json)):
+                instance_joints = self.get_joints(target_json[i]["keypoints"])
+                sample = {'image':image, 'target':instance_joints,'joints_vis':[]}            
+                sample = t(sample)
+                image = sample['image']
+                target_json[i]["keypoints"] = self.get_json_list(sample['target'])
+        return image, mask, target_json
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + "("
+        for t in self.transforms:
+            format_string += "\n"
+            format_string += "    {0}".format(t)
+        format_string += "\n)"
+        return format_string
+    
+    def get_joints(self,keypoints):
+        total = []
+        for i in range(len(keypoints)//3):
+            elem = [keypoints[3*i], keypoints[3*i +1], keypoints[3*i+2]]
+            total.append(elem)
+
+        return np.array(total)
+    
+    def get_json_list(self, target):
+        return list(target.flatten())
+
 
 class ToTensor(object):
     def __call__(self, image, mask, joints):
